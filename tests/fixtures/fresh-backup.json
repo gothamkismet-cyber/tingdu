@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "language": "en",
+  "prefs": {
+    "en": {"book":"en-words","mode":"dictation","form":"written","limit":10,"rate":0.85,"voice":"","kana":true,"shuffle":true},
+    "ja": {"book":"ja-words","mode":"dictation","form":"reading","limit":10,"rate":0.85,"voice":"","kana":true,"shuffle":true}
+  },
+  "customBooks": [],
+  "progress": {},
+  "history": [],
+  "sessions": {"en":null,"ja":null}
+}

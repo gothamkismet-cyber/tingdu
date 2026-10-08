@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colours match the page's light background and tab bar tokens so launching never flashes a different shade. -->
+    <style name="Theme.Tingdu" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/tingdu_background</item>
+        <item name="android:statusBarColor">@color/tingdu_background</item>
+        <item name="android:navigationBarColor">@color/tingdu_navigation</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorPrimary">@color/tingdu_primary</item>
+        <item name="android:colorAccent">@color/tingdu_primary</item>
+        <!-- Keep system bars outside the WebView on Android 15, where CSS cannot read their insets. -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+    <color name="tingdu_background">#F3F5FA</color>
+    <color name="tingdu_navigation">#FFFFFF</color>
+    <color name="tingdu_primary">#3E5CF5</color>
+</resources>

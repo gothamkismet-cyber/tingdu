@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A dark parent theme also makes the WebView report prefers-color-scheme: dark to the page. -->
+    <style name="Theme.Tingdu" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/tingdu_background</item>
+        <item name="android:statusBarColor">@color/tingdu_background</item>
+        <item name="android:navigationBarColor">@color/tingdu_navigation</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:colorPrimary">@color/tingdu_primary</item>
+        <item name="android:colorAccent">@color/tingdu_primary</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+    <color name="tingdu_background">#0C111D</color>
+    <color name="tingdu_navigation">#141A29</color>
+    <color name="tingdu_primary">#8095FF</color>
+</resources>

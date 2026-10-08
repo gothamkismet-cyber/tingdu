@@ -1,0 +1,68 @@
+{
+  "name": "tingdu",
+  "version": "2.3.0",
+  "description": "听读 · 英日单词与短句学习助手",
+  "author": "Tingdu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gothamkismet-cyber/tingdu.git"
+  },
+  "homepage": "https://github.com/gothamkismet-cyber/tingdu#readme",
+  "bugs": {
+    "url": "https://github.com/gothamkismet-cyber/tingdu/issues"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "main": "desktop/main.mjs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node web/server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "desktop": "electron .",
+    "build:exe": "electron-builder --win portable --x64 --publish never",
+    "build:apk": "node scripts/build-apk.mjs"
+  },
+  "build": {
+    "appId": "local.tingdu.learner",
+    "productName": "听读",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "release",
+      "buildResources": "desktop/assets"
+    },
+    "files": [
+      "desktop/**",
+      "web/dist/**",
+      "web/native-speech.mjs",
+      "web/speech.ps1",
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "asarUnpack": [
+      "web/speech.ps1"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "desktop/assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "听读-${version}-Windows-x64.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
+  }
+}

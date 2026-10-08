@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 7.x has no adaptive icons; this rounded square matches the desktop icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M12,2h24a10,10 0,0 1,10 10v24a10,10 0,0 1,-10 10h-24a10,10 0,0 1,-10 -10v-24a10,10 0,0 1,10 -10z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="2"
+                android:startY="2"
+                android:endX="46"
+                android:endY="46">
+                <item android:offset="0" android:color="#FF4A6CF7" />
+                <item android:offset="1" android:color="#FF6A4CF5" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M13,18.7L13,29.3M20.5,12.1L20.5,35.9M28,16.3L28,31.7M35.4,10.1L35.4,37.9"
+        android:strokeWidth="3.3"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+</vector>

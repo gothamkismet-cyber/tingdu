@@ -1,0 +1,34 @@
+# Dependencies, generated packages and local toolchains
+/node_modules/
+/release/
+/build/
+/.toolchain/
+
+# Signing credentials and local configuration
+/android/signing/
+*.p12
+*.jks
+*.keystore
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+
+# Learning files, diagnostics and private project handoffs
+/evidence/
+/.tavernweave/
+/.codex/
+/NEXT.md
+/总设计案.md
+/项目实现步骤蓝图.md
+learning.json
+learning.previous.json
+learning.next.json
+*.log
+
+# OS/editor scratch files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
