@@ -8,7 +8,7 @@ const css = await readFile(new URL('../web/dist/style.css', import.meta.url), 'u
 const html = await readFile(new URL('../web/dist/index.html', import.meta.url), 'utf8');
 
 // Runs theme.js the way the page does, before first paint, with a chosen clock, storage and system preferences.
-function boot({ theme = null, style = null, hour = 12, systemDark = false, reducedMotion = false, launched = false } = {}) {
+function boot({ theme = null, style = null, opening = null, hour = 12, systemDark = false, reducedMotion = false, launched = false, storageUnavailable = false } = {}) {
   const classes = new Set(), listeners = {};
   const root = { dataset: {}, classList: { add: name => classes.add(name), contains: name => classes.has(name), toggle: (name, on) => on ? classes.add(name) : classes.delete(name) } };
   const store = values => ({ getItem: key => values[key] ?? null, setItem: (key, value) => { values[key] = String(value); } });
@@ -16,7 +16,7 @@ function boot({ theme = null, style = null, hour = 12, systemDark = false, reduc
   class FixedDate extends Date { getHours() { return hour; } }
   const context = {
     Date: FixedDate,
-    localStorage: store({ 'tingdu:theme': theme, 'tingdu:style': style }),
+    localStorage: storageUnavailable ? { getItem() { throw new Error('Storage disabled'); } } : store({ 'tingdu:theme': theme, 'tingdu:style': style, 'tingdu:opening': opening }),
     sessionStorage: store(session),
     matchMedia: query => ({ matches: query.includes('dark') ? systemDark : query.includes('reduced-motion') ? reducedMotion : false }),
     document: { documentElement: root, getElementById: () => ({}), addEventListener: (type, fn) => { listeners[type] = fn; }, removeEventListener() {} }
@@ -43,12 +43,14 @@ test('The night class follows an explicit choice, or the system when following i
   assert.equal(boot({ theme: 'bogus' }).theme, undefined);
 });
 
-test('The opening animation plays once per launch, is skipped for reduced motion, and a tap skips it', () => {
-  const first = boot();
+test('Fast startup is the default; an optional full opening respects repeat launches, reduced motion and skipping', () => {
+  assert.equal(boot().classes.has('splash-seen'), true);
+  assert.equal(boot({ storageUnavailable: true }).classes.has('splash-seen'), true);
+  const first = boot({ opening: 'full' });
   assert.equal(first.classes.has('splash-seen'), false);
   assert.equal(first.session['tingdu:splash'], '1');
-  assert.equal(boot({ launched: true }).classes.has('splash-seen'), true);
-  assert.equal(boot({ reducedMotion: true }).classes.has('splash-seen'), true);
+  assert.equal(boot({ opening: 'full', launched: true }).classes.has('splash-seen'), true);
+  assert.equal(boot({ opening: 'full', reducedMotion: true }).classes.has('splash-seen'), true);
   first.listeners.pointerdown();
   assert.equal(first.classes.has('splash-skip'), true);
 });

@@ -12,12 +12,12 @@
   // "night" marks whichever dark palette is showing, so the sky and glow details can follow it.
   var dark = root.dataset.theme === 'dark' || (root.dataset.theme !== 'light' && !!window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
   root.classList.toggle('night', dark);
-  // The opening animation plays once per launch; reloads in the same session and reduced-motion users go straight in.
+  // Fast startup is the default. The full opening remains available in appearance settings.
   try {
-    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) root.classList.add('splash-seen');
+    if (localStorage.getItem('tingdu:opening') !== 'full' || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) root.classList.add('splash-seen');
     else if (sessionStorage.getItem('tingdu:splash')) root.classList.add('splash-seen');
     else sessionStorage.setItem('tingdu:splash', '1');
-  } catch (error) {}
+  } catch (error) { root.classList.add('splash-seen'); }
   // A tap, click or key press skips the animation.
   function skip() {
     if (!document.getElementById('splash')) { document.removeEventListener('pointerdown', skip, true); document.removeEventListener('keydown', skip, true); return; }

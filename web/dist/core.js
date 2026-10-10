@@ -1,10 +1,11 @@
 import { builtinEntries, builtinBooks, modes, languages, englishAccents } from './data.js';
+import { freshListening, validateListening } from './listening.js';
 
 export const STORAGE_KEY = 'tingdu:v1';
 const DAY = 86400000;
 const defaults = lang => ({ book: `${lang}-words`, mode: 'dictation', form: lang === 'ja' ? 'reading' : 'written', limit: 10, rate: 0.85, voice: '', kana: true, shuffle: true, dictationStyle:'step', repeat:1, pause:4, goal:10, ...(lang==='en'?{accent:'en-US'}:{}) });
 export function freshState() {
-  return { version: 1, language: 'en', onboardingComplete: false, prefs: { en: defaults('en'), ja: defaults('ja') }, customBooks: [], progress: {}, history: [], sessions: { en: null, ja: null } };
+  return { version: 1, language: 'en', onboardingComplete: false, prefs: { en: defaults('en'), ja: defaults('ja') }, customBooks: [], progress: {}, history: [], sessions: { en: null, ja: null }, listening: freshListening() };
 }
 export const validDailyGoal = value => Number.isSafeInteger(value) && value >= 1 && value <= 100;
 export function setEnglishAccent(state, accent) {
@@ -254,6 +255,7 @@ export function validateState(input) {
     if(isBatch(session)&&session.index>0&&session.index<session.ids.length)fail();
   }
   const restored=structuredClone(input);
+  restored.listening=validateListening(input.listening);
   restored.onboardingComplete??=false;
   for(const lang of ['en','ja']){restored.prefs[lang]={...defaults(lang),...restored.prefs[lang]};if(restored.sessions[lang]){restored.sessions[lang].settings={...defaults(lang),...restored.sessions[lang].settings};restored.sessions[lang].batchDrafts??={};}}
   return restored;

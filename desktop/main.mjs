@@ -55,7 +55,7 @@ async function createWindow(){
     mainWindow.webContents.send('tingdu:prepare-close');
     closeTimer=setTimeout(()=>store.flush().catch(error=>log('flush-failed '+error.message)).finally(()=>{allowQuit=true;app.quit();}),3000);
   });
-  // Show the window once its first frame (the opening animation) has painted, so launch never flashes an empty window.
+  // Show the window after its first frame paints, so launch never flashes an empty window.
   if(!diagnostic){mainWindow.once('ready-to-show',()=>mainWindow.show());setTimeout(()=>{if(!mainWindow.isDestroyed()&&!mainWindow.isVisible())mainWindow.show();},4000);}
   await mainWindow.loadURL(appUrl);await log('window-loaded '+app.getVersion());
 }

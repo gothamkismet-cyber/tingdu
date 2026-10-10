@@ -30,11 +30,13 @@ npm run build:exe
 
 如果先前使用了 `npm ci --ignore-scripts`，请先执行 `node node_modules/electron/install.js` 下载 Electron 运行环境。
 
-输出为 `release/听读-<版本号>-Windows-x64.exe`。发布时复制为英文文件名 `tingdu-<版本号>-windows-x64.exe`，不改变文件内容。当前没有 Windows 代码签名证书。
+`build:exe` 现在输出 `release/听读-<版本号>-Windows-x64.zip`，其中包含可以直接运行的 `听读.exe` 和必需运行文件。发布时复制为英文文件名 `tingdu-<版本号>-windows-x64.zip`，不改变文件内容。完整解压一次后直接运行，免去每次启动解包的开销；保留整个文件夹。构建时的展开目录是 `release/win-unpacked/`。当前没有 Windows 代码签名证书。
+
+若确实需要旧式单文件包，可运行 `npm run build:portable`，输出 `release/听读-<版本号>-Windows-x64.exe`。它每次启动会解压运行环境，速度慢于文件夹版，因此不作为默认下载。
 
 包内包含项目 LICENSE、第三方声明，以及 Electron / Chromium 自带的许可文件。请保留这些文件。
 
-桌面版支持诊断参数 `--verify-startup` 和 `--diagnostic-output=<绝对路径.json>`。两者一起使用时，诊断数据写入输出文件，学习数据隔离在该文件父目录下的 `desktop-test-data/`。诊断检查页面加载和保存，不等于完成了真实窗口、麦克风和声音体验验证。
+桌面版支持诊断参数 `--verify-startup` 和 `--diagnostic-output=<绝对路径.json>`。两者一起使用时，诊断数据写入输出文件，学习数据隔离在该文件父目录下的 `desktop-test-data/`。`renderer.pageReadyMs` 是页面内部的就绪时间，不包含进程启动；声音探测与生成音频单独检查，不再阻塞页面就绪。比较完整启动耗时应从外部启动进程计时到日志的 `window-loaded` / `renderer-ready`。诊断检查页面加载和保存，不等于完成了真实窗口、麦克风和声音体验验证。
 
 ## Android APK
 

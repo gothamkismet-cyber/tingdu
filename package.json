@@ -1,6 +1,6 @@
 {
   "name": "tingdu",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "听读 · 英日单词与短句学习助手",
   "author": "Tingdu",
   "license": "MIT",
@@ -23,8 +23,9 @@
     "test": "node --test tests/*.test.mjs",
     "check": "node scripts/check.mjs",
     "desktop": "electron .",
-    "build:exe": "electron-builder --win portable --x64 --publish never",
-    "build:apk": "node scripts/build-apk.mjs"
+    "build:exe": "electron-builder --win zip --x64 --publish never",
+    "build:apk": "node scripts/build-apk.mjs",
+    "build:portable": "electron-builder --win portable --x64 --publish never"
   },
   "build": {
     "appId": "local.tingdu.learner",
@@ -49,13 +50,14 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "zip",
           "arch": [
             "x64"
           ]
         }
       ],
-      "icon": "desktop/assets/icon.ico"
+      "icon": "desktop/assets/icon.ico",
+      "artifactName": "听读-${version}-Windows-${arch}.zip"
     },
     "portable": {
       "artifactName": "听读-${version}-Windows-x64.exe"
