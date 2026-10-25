@@ -2,7 +2,7 @@
 
 ## 环境
 
-- Node.js 22.12 或更新版本，推荐 Node.js 24。
+- Node.js 22.12 或更新版本；联网使用建议 Node.js 24 LTS 的最新安全补丁版。
 - Windows 便携版：在 Windows x64 上构建，使用锁定的 Electron 和 electron-builder。
 - Android：JDK 17、Android SDK Platform 35、Build Tools 35.0.0。当前构建验证在 Windows 完成，不需要 Gradle。
 - 首次安装依赖、Electron、JDK 或 Android SDK 需要网络；这些工具不随源码仓库上传。
@@ -19,6 +19,8 @@ npm start
 ```
 
 浏览器访问 `http://127.0.0.1:4173/`。这里的 `web/dist/` 就是源文件，不需要再编译前端。服务启动后，Windows 可在另一个终端运行 `node scripts/check-audio.mjs` 检查本机语音接口；这不能证明实际扬声器音质。
+
+需要独立测试端口时运行 `node web/server.mjs --port=4186`。AI 请求通过同源的 `/api/online` 转发；只接受本机页面来源和 JSON 请求，不会自动调用 AI。协议与生成材料的测试使用模拟数据，不需要真实密钥或付费额度。第三方语音服务的实际兼容性需要在界面中自行测试，详见 [接入说明](AI_VOICE.md)。
 
 ## Windows 便携版
 
@@ -90,6 +92,8 @@ npm.cmd run build:apk
 
 ## 当前开发依赖提示
 
-2026-10-09 的 `npm audit` 报告 8 个中等级别受影响依赖，来自打包工具间接使用的 `sprintf-js` 格式化异常问题（[GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)）。这些依赖用于本地构建，没有打入应用自身的源码包；生产依赖检查为 0 项告警。这不代表 Electron 运行环境经过完整安全审计。
+2026-10-26 的发布检查发现 Electron 44.7.0 受到 [被盗用证书问题](https://github.com/electron/electron/security/advisories/GHSA-jr5w-w6x2-84p9)影响。2.5 已更新到同系列修复版 44.9.3，并更新锁文件中的 `fast-uri` 与 `undici` 修复版本；electron-builder 保持 26.15.3，没有新增依赖。
 
-该公告目前没有列出修复版本；npm 建议的自动修复会把 electron-builder 从 26.15.3 降到 26.5.0。本版保留已验证的构建版本，没有执行强制降级。升级构建依赖时需重新检查这项公告和实际打包结果。
+桌面联网使用 [Electron 的 Chromium 网络接口](https://www.electronjs.org/docs/latest/api/net#netfetchinput-init)，继承系统代理配置，不走 Node 内置的 Undici，也不发送会话 Cookie。仍保留禁止重定向、超时与响应大小限制。
+
+更新后完整 `npm audit` 与 `npm audit --omit=dev` 均为 0 项告警。这只是当时公告数据库和锁文件的检查结果，不等于完整安全审计，也不检查浏览器版使用的系统 Node.js；系统运行环境仍需保持更新。

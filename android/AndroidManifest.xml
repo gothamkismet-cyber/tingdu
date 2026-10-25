@@ -2,9 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="local.tingdu.learner">
 
-    <!-- Pages are served from inside the app; the WebView still expects network permission, and every other host is refused in MainActivity. -->
+    <!-- The UI is bundled locally. Optional AI and Wikipedia requests use a bounded native HTTPS bridge. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Shadowing recordings stay in the current question and are never uploaded. -->
+    <!-- Shadowing stays local. AI practice uploads only after the learner explicitly sends a recording. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 

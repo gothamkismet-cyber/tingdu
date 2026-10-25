@@ -25,6 +25,7 @@
 learning.json
 learning.previous.json
 learning.next.json
+ai-provider.enc*
 *.log
 
 # OS/editor scratch files

@@ -40,7 +40,7 @@ test('Listening materials have unique questions, four distinct options and speec
 test('Old backups acquire empty listening state while bilingual drafts survive round trips independently', () => {
   const old = freshState(); delete old.listening;
   const upgraded = validateState(old);
-  assert.deepEqual(upgraded.listening, { sessions: { en: null, ja: null }, history: [] });
+  assert.deepEqual(upgraded.listening, { sessions: { en: null, ja: null }, history: [], customLessons: [] });
   const english = beginListening(upgraded, 'en', en.id, null, 10);
   answerListening(english, en.questions[0].id, 2);
   const japanese = beginListening(upgraded, 'ja', ja.id, null, 20);

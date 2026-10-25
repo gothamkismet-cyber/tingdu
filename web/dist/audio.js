@@ -72,6 +72,7 @@ export class SpeechPlayer {
   spokenText(entry) { return entry.language === 'ja' && entry.kind === 'word' ? entry.reading : entry.text; }
   speakOnce(entry, settings, slow = false) {
     this.stopPlayback();
+    if(this.ai?.readAloud)return this.speakAI(entry,settings,slow);
     const accent=entry.language==='en'?(settings.accent||'en-US'):null;
     const voices = this.forLanguage(entry.language,accent), label=accent?englishAccents[accent]?.name:languages[entry.language].name;
     if (!voices.length) {this.notify(this.loadingNative?'正在检测本机音色，请稍后再点击播放。':`尚未发现${label}音色。${this.android?'请在系统语音设置里安装对应语言的语音数据后重新检测。':'请使用提供对应音色的浏览器，或添加设备语音后重新检测。'}`);return Promise.resolve(false);}
@@ -92,6 +93,20 @@ export class SpeechPlayer {
       this.timer=setTimeout(()=>{if(token===this.token){this.stopPlayback();this.notify('朗读未返回结果，请重试或更换音色。');}},Math.max(20000,entry.text.length*1000));
       try{window.speechSynthesis.speak(utterance);}catch{finish(false);this.notify('朗读未能开始，请更换音色后重试。');}
     });
+  }
+  async speakAI(entry,settings,slow){
+    const token=this.token;this.abort=new AbortController();this.setPlaying(true,entry.id);
+    try{
+      if(!this.ai.verified)throw new Error('请先在“AI 语音”中连接并测试语音能力。');
+      const key=JSON.stringify(['ai',this.ai.revision,entry.language,settings.accent,this.spokenText(entry)]);
+      let url=this.cache.get(key);
+      if(!url){const bytes=await this.ai.synthesize(this.spokenText(entry),entry.language,settings.accent,this.abort.signal);if(token!==this.token)return false;url=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));this.cache.set(key,url);if(this.cache.size>24){const first=this.cache.keys().next().value;URL.revokeObjectURL(this.cache.get(first));this.cache.delete(first);}}
+      if(token!==this.token)return false;
+      this.audio=new Audio(url);this.audio.id='ai-demonstration';this.audio.hidden=true;this.audio.playbackRate=slow?Math.max(.5,settings.rate*.7):settings.rate;document.body.append(this.audio);
+      const ended=new Promise(resolve=>{this.resolvePlayback=resolve;const finish=ok=>{if(token!==this.token)return;clearTimeout(this.timer);this.resolvePlayback=null;this.setPlaying(false);resolve(ok);};this.audio.onended=()=>finish(true);this.audio.onerror=()=>{finish(false);this.notify('AI 音频无法播放，请检查音频格式。');};});
+      this.timer=setTimeout(()=>{if(token===this.token){this.stopPlayback();this.notify('AI 音频播放超时。');}},120000);
+      await this.audio.play();return await ended;
+    }catch(error){if(token===this.token){clearTimeout(this.timer);this.resolvePlayback?.(false);this.resolvePlayback=null;this.setPlaying(false);this.notify(error.name==='NotAllowedError'?'AI 声音已准备好，请再点击播放。':error.message||'AI 朗读失败，请重试。');}return false;}
   }
   // Android speaks through the system engine and reports completion as a "speech" native event.
   speakAndroid(entry, settings, voice, slow) {
@@ -137,7 +152,7 @@ export class SpeechPlayer {
 }
 
 export class VoiceRecorder {
-  constructor(notify, onChange) { this.notify = notify; this.onChange = onChange; this.status = 'idle'; this.token = 0; this.url = null; }
+  constructor(notify, onChange, maxSeconds=60) { this.notify = notify; this.onChange = onChange; this.maxSeconds=maxSeconds; this.status = 'idle'; this.token = 0; this.url = null; this.blob=null; }
   async start() {
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return this.notify('当前浏览器不能录音。仍可播放示范并自行跟读。');
     this.reset(); const token = this.token; this.status = 'requesting'; this.onChange();
@@ -151,12 +166,13 @@ export class VoiceRecorder {
         stream.getTracks().forEach(track => track.stop());
         if (token !== this.token) return;
         clearTimeout(this.timer);
-        this.url = URL.createObjectURL(new Blob(this.chunks, { type: this.recorder.mimeType || 'audio/webm' }));
+        this.blob=new Blob(this.chunks, { type: this.recorder.mimeType || 'audio/webm' });
+        this.url = URL.createObjectURL(this.blob);
         this.status = 'ready'; this.onChange();
       };
       this.recorder.onerror = () => { if(token!==this.token)return;this.reset(); this.notify('录音中断，请检查麦克风后重试。'); this.onChange(); };
       this.recorder.start(); this.startedAt = Date.now(); this.status = 'recording';
-      this.timer = setTimeout(() => { this.stop(); this.notify('已保存本次录音，单次最多 60 秒。'); }, 60000);
+      this.timer = setTimeout(() => { this.stop(); this.notify(`已保留本次录音，单次最多 ${this.maxSeconds} 秒。`); }, this.maxSeconds*1000);
       this.onChange();
     } catch (error) {
       if (token !== this.token) return;
@@ -170,6 +186,6 @@ export class VoiceRecorder {
     if (this.recorder?.state === 'recording') this.recorder.stop();
     this.stream?.getTracks().forEach(track => track.stop());
     if (this.url) URL.revokeObjectURL(this.url);
-    this.url = null; this.status = 'idle'; this.stream = null;
+    this.url = null; this.blob=null; this.status = 'idle'; this.stream = null;
   }
 }

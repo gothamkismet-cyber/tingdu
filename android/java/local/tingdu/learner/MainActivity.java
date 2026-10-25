@@ -72,6 +72,7 @@ public class MainActivity extends Activity {
 
     private final Object storeLock = new Object();
     private WebView web;
+    private OnlineBridge online;
     private TextToSpeech speech;
     private volatile int speechState = SPEECH_STARTING;
     private int speechGeneration;
@@ -83,6 +84,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
         web = new WebView(this);
+        online = new OnlineBridge(this, this::emit);
         web.setBackgroundColor(Color.TRANSPARENT);
         setContentView(web);
         WebSettings settings = web.getSettings();
@@ -120,9 +122,11 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        online.close();
         if (speech != null) speech.shutdown();
         if (pendingMicrophone != null) pendingMicrophone.deny();
         web.destroy();
+        web = null;
         super.onDestroy();
     }
 
@@ -290,7 +294,7 @@ public class MainActivity extends Activity {
             Uri url = request.getUrl();
             String scheme = url.getScheme();
             if (!"http".equals(scheme) && !"https".equals(scheme)) return null;
-            // The app never contacts other sites.
+            // Remote data uses the explicit native bridge; remote pages/scripts cannot enter this WebView.
             if (!"https".equals(scheme) || !HOST.equals(url.getHost())) return missing();
             String path = url.getPath();
             if (path == null || path.isEmpty() || path.equals("/")) path = "/index.html";
@@ -308,6 +312,13 @@ public class MainActivity extends Activity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            Uri uri=request.getUrl();
+            if(request.isForMainFrame() && request.hasGesture() && "https".equals(uri.getScheme())
+                    && ((Arrays.asList("en.wikipedia.org","ja.wikipedia.org").contains(uri.getHost()) && uri.getPath()!=null && uri.getPath().startsWith("/wiki/"))
+                        || ("creativecommons.org".equals(uri.getHost()) && "/licenses/by-sa/4.0/".equals(uri.getPath())))
+                    && uri.getUserInfo()==null && uri.getPort()==-1) {
+                try { startActivity(new Intent(Intent.ACTION_VIEW,uri)); } catch(ActivityNotFoundException ignored) {}
+            }
             return !HOST.equals(request.getUrl().getHost());
         }
     }
@@ -348,6 +359,10 @@ public class MainActivity extends Activity {
 
     /** Methods run on the WebView's bridge thread; anything that touches views is posted to the UI thread. */
     private final class Bridge {
+        @JavascriptInterface public String online(String id,String raw) { return online.request(id,raw); }
+        @JavascriptInterface public void cancelOnline(String id) { online.cancel(id); }
+        @JavascriptInterface public String loadAIProfile() { return online.loadProfile(); }
+        @JavascriptInterface public String saveAIProfile(String raw) { return online.saveProfile(raw); }
         @JavascriptInterface
         public String loadState() {
             synchronized (storeLock) {

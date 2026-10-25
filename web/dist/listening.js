@@ -1,13 +1,15 @@
 import { listeningLessons } from './listening-data.js';
+import { validateCustomLessons } from './generated-lessons.js';
 
-export const freshListening = () => ({ sessions: { en: null, ja: null }, history: [] });
-export const lessonById = id => listeningLessons.find(lesson => lesson.id === id);
+export const freshListening = () => ({ sessions: { en: null, ja: null }, history: [], customLessons: [] });
+export const allListeningLessons = state => [...listeningLessons, ...(state?.listening?.customLessons || [])];
+export const lessonById = (id, state) => allListeningLessons(state).find(lesson => lesson.id === id);
 export const listeningEntries = lesson => lesson.segments.map((segment, index) => ({
   id: `${lesson.id}-segment-${index}`, language: lesson.language, kind: 'phrase', text: segment.text
 }));
 
 export function beginListening(state, language, lessonId, questionIds = null, now = Date.now()) {
-  const lesson = lessonById(lessonId);
+  const lesson = lessonById(lessonId, state);
   if (!lesson || lesson.language !== language) throw new Error('听力材料不存在或语言不匹配。');
   const ids = questionIds ?? lesson.questions.map(question => question.id);
   if (!Array.isArray(ids) || !ids.length || new Set(ids).size !== ids.length || ids.some(id => !lesson.questions.some(question => question.id === id))) throw new Error('听力题目无效。');
@@ -16,15 +18,15 @@ export function beginListening(state, language, lessonId, questionIds = null, no
   return session;
 }
 
-export function answerListening(session, questionId, option) {
+export function answerListening(session, questionId, option, state) {
   if (!session || session.submittedAt !== null) throw new Error('这组听力已交卷，请重新练习。');
-  const question = lessonById(session.lessonId)?.questions.find(item => item.id === questionId);
+  const question = lessonById(session.lessonId, state)?.questions.find(item => item.id === questionId);
   if (!question || !session.questionIds.includes(questionId) || !Number.isInteger(option) || option < 0 || option >= question.options.length) throw new Error('请选择这道题的有效选项。');
   session.answers[questionId] = option;
 }
 
-export function listeningResult(session) {
-  const lesson = lessonById(session.lessonId);
+export function listeningResult(session, state) {
+  const lesson = lessonById(session.lessonId, state);
   const items = session.questionIds.map(id => {
     const question = lesson.questions.find(item => item.id === id);
     return { question, selected: session.answers[id], correct: session.answers[id] === question.answer };
@@ -51,7 +53,7 @@ export function listeningStats(state, language) {
   let correct = 0, total = 0;
   const latest = new Map();
   for (const session of history) {
-    const result = listeningResult(session);
+    const result = listeningResult(session, state);
     correct += result.correct; total += result.total;
     for (const item of result.items) latest.set(item.question.id, { ...item, lessonId: session.lessonId });
   }
@@ -66,8 +68,9 @@ export function validateListening(input) {
   const integer = value => Number.isSafeInteger(value) && value >= 0;
   const timestamp = value => integer(value) && value <= 8640000000000000;
   if (!object(input) || !object(input.sessions) || !Array.isArray(input.history) || input.history.length > 100) fail();
+  const customLessons = validateCustomLessons(input.customLessons), state = { listening: { customLessons } };
   const validSession = (value, language, submitted = false) => {
-    const lesson = object(value) && lessonById(value.lessonId);
+    const lesson = object(value) && lessonById(value.lessonId, state);
     if (!lesson || lesson.language !== language || value.language !== language || typeof value.id !== 'string' || !/^lc-s-[\w-]{1,90}$/.test(value.id) || !Array.isArray(value.questionIds) || !value.questionIds.length || value.questionIds.length > lesson.questions.length || new Set(value.questionIds).size !== value.questionIds.length || !value.questionIds.every(id => lesson.questions.some(question => question.id === id)) || !object(value.answers) || !timestamp(value.startedAt) || !integer(value.plays) || value.plays > 10000) fail();
     const done = value.submittedAt !== null;
     if ((submitted && !done) || (done && (!timestamp(value.submittedAt) || value.submittedAt < value.startedAt))) fail();
@@ -89,5 +92,5 @@ export function validateListening(input) {
     if (saved && signature(saved) !== signature(session)) fail();
   }
   if (sessions.en && sessions.ja && sessions.en.id === sessions.ja.id) fail();
-  return { sessions, history };
+  return { sessions, history, customLessons };
 }

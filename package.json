@@ -1,6 +1,6 @@
 {
   "name": "tingdu",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "听读 · 英日单词与短句学习助手",
   "author": "Tingdu",
   "license": "MIT",
@@ -39,6 +39,7 @@
       "desktop/**",
       "web/dist/**",
       "web/native-speech.mjs",
+      "web/online.mjs",
       "web/speech.ps1",
       "package.json",
       "LICENSE",
@@ -64,7 +65,7 @@
     }
   },
   "devDependencies": {
-    "electron": "44.7.0",
+    "electron": "44.9.3",
     "electron-builder": "26.15.3"
   }
 }

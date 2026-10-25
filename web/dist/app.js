@@ -4,7 +4,9 @@ import { SpeechPlayer, VoiceRecorder } from './audio.js';
 import { registerLearningTools } from './webmcp.js';
 import { loadLearningState } from './storage.js';
 import { nativeHost } from './host.js';
-import { listeningLessons } from './listening-data.js';
+import { allListeningLessons } from './listening.js';
+import { AIClient } from './ai-client.js';
+import { createAIView } from './ai-view.js';
 import { createListeningView } from './listening-view.js';
 
 const root = document.querySelector('#tingdu-app'), dialog = document.querySelector('#dialog');
@@ -66,13 +68,16 @@ function updateStorageNotice() {
   const notice = document.querySelector('#storage-notice');
   if (notice) { notice.hidden = !storageProblem; notice.innerHTML = `${e(storageProblem)} <button class="text-button" data-action="settings">备份与恢复</button>`; }
 }
+const ai = new AIClient();
 const speech = new SpeechPlayer(notify, () => updateVoiceNotice());
+speech.ai = ai;
 const recorder = new VoiceRecorder(notify, () => { if (view === 'train' && activeSession()?.settings.mode === 'shadow') render(); });
 const pref = () => state.prefs[state.language];
 const activeSession = () => state.sessions[state.language];
 const entryById = id => allEntries(state).find(entry => entry.id === id);
 const currentEntry = () => { const s = activeSession(); return s && entryById(s.ids[s.index]); };
 const listeningUI = createListeningView({ getState:()=>state, speech, persist, render, notify, confirm:confirmDialog, visible:()=>view==='listening', e, icon });
+const aiUI = createAIView({ client:ai, getState:()=>state, speech, persist, render, notify, confirm:confirmDialog, visible:()=>view==='ai', openLesson:id=>{navigate('listening');listeningUI.openLesson(id);}, e, icon });
 const formatTime = at => new Intl.DateTimeFormat('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }).format(at);
 const kindName = entry => entry.kind === 'phrase' ? '短句' : '单词';
 const formName = (mode, form, language = state.language) => language === 'ja' && ['dictation','recall'].includes(mode) ? (form === 'reading' ? '假名读音' : '标准写法') : '';
@@ -108,9 +113,9 @@ function sidePanels() {
 }
 function shell(content, subtitle) {
   const stats = summarize(state, state.language), goal = percent(stats.todayWords, stats.goal);
-  const views = { train:['开始练习','headphones'], listening:['听力题','volume'], library:['我的词本','book'], review:['错词复习','repeat'], records:['学习记录','chart'] };
+  const views = { train:['开始练习','headphones'], listening:['听力题','volume'], ai:['AI 语音','mic'], library:['我的词本','book'], review:['错词复习','repeat'], records:['学习记录','chart'] };
   const mark = `<div class="brand-mark">${logoBars}</div>`, night = isNight();
-  return `<div class="shell"><aside class="sidebar"><div class="brand">${mark}<div><div class="brand-name">听读</div><small>LISTEN &amp; LEARN</small></div></div><nav class="nav" aria-label="主要导航">${Object.entries(views).map(([key,[name,symbol]]) => `<button data-action="nav" data-view="${key}" class="${view===key?'active':''}" ${view===key?'aria-current="page"':''}>${icon(symbol)}<span>${name}</span>${key==='review'&&stats.wrong?`<span class="nav-count" aria-label="${stats.wrong} 个待复习">${stats.wrong}</span>`:''}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="sidebar-note"><div class="sidebar-goal">${ring(goal)}<div><strong>今日学习目标</strong><small>已练 ${stats.todayWords} / ${stats.goal} 个词</small></div></div>${stats.streak?`<div class="streak">${icon('flame')}连续练习 ${stats.streak} 天</div>`:''}</div><button class="sidebar-settings" data-action="settings">${icon('settings')}声音与备份</button><small class="storage-label">${storageLabel()}</small></div></aside><div class="workspace"><header class="topbar"><div class="topbar-brand">${mark}<span>听读</span></div><span class="topbar-meta"><strong>${greeting()}</strong> · ${new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'long'}).format(new Date())}</span><div class="topbar-actions"><button class="icon-button theme-toggle" data-action="toggle-night" aria-pressed="${night}" aria-label="夜间模式" title="${night?'切换到白天模式':'切换到夜间模式'}"><span class="theme-icon sun">${icon('sun')}</span><span class="theme-icon moon">${icon('moon')}</span></button><div class="lang-switch" role="group" aria-label="学习语言">${Object.entries(languages).map(([key,lang]) => `<button data-action="language" data-language="${key}" class="${state.language===key?'active':''}" aria-pressed="${state.language===key}">${lang.name}</button>`).join('')}</div><button class="icon-button mobile-settings" data-action="settings" aria-label="声音与备份">${icon('settings')}</button></div></header><main class="content" id="content" tabindex="-1"><div class="page-heading"><div><h1>${views[view][0]}</h1><p>${e(subtitle)}</p></div><span class="tag">${languages[state.language].native} · ${view==='listening'?listeningLessons.filter(item=>item.language===state.language).length+' 篇材料':allEntries(state).filter(item=>item.language===state.language).length+' 条内容'}</span></div>${learningBar()}<div class="notice" id="storage-notice" ${storageProblem?'':'hidden'}>${e(storageProblem)} <button class="text-button" data-action="settings">备份与恢复</button></div>${content}</main></div></div>`;
+  return `<div class="shell"><aside class="sidebar"><div class="brand">${mark}<div><div class="brand-name">听读</div><small>LISTEN &amp; LEARN</small></div></div><nav class="nav" aria-label="主要导航">${Object.entries(views).map(([key,[name,symbol]]) => `<button data-action="nav" data-view="${key}" class="${view===key?'active':''}" ${view===key?'aria-current="page"':''}>${icon(symbol)}<span>${name}</span>${key==='review'&&stats.wrong?`<span class="nav-count" aria-label="${stats.wrong} 个待复习">${stats.wrong}</span>`:''}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="sidebar-note"><div class="sidebar-goal">${ring(goal)}<div><strong>今日学习目标</strong><small>已练 ${stats.todayWords} / ${stats.goal} 个词</small></div></div>${stats.streak?`<div class="streak">${icon('flame')}连续练习 ${stats.streak} 天</div>`:''}</div><button class="sidebar-settings" data-action="settings">${icon('settings')}声音与备份</button><small class="storage-label">${storageLabel()}</small></div></aside><div class="workspace"><header class="topbar"><div class="topbar-brand">${mark}<span>听读</span></div><span class="topbar-meta"><strong>${greeting()}</strong> · ${new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'long'}).format(new Date())}</span><div class="topbar-actions"><button class="icon-button theme-toggle" data-action="toggle-night" aria-pressed="${night}" aria-label="夜间模式" title="${night?'切换到白天模式':'切换到夜间模式'}"><span class="theme-icon sun">${icon('sun')}</span><span class="theme-icon moon">${icon('moon')}</span></button><div class="lang-switch" role="group" aria-label="学习语言">${Object.entries(languages).map(([key,lang]) => `<button data-action="language" data-language="${key}" class="${state.language===key?'active':''}" aria-pressed="${state.language===key}">${lang.name}</button>`).join('')}</div><button class="icon-button mobile-settings" data-action="settings" aria-label="声音与备份">${icon('settings')}</button></div></header><main class="content" id="content" tabindex="-1"><div class="page-heading"><div><h1>${views[view][0]}</h1><p>${e(subtitle)}</p></div><span class="tag">${languages[state.language].native} · ${view==='listening'?allListeningLessons(state).filter(item=>item.language===state.language).length+' 篇材料':allEntries(state).filter(item=>item.language===state.language).length+' 条内容'}</span></div>${learningBar()}<div class="notice" id="storage-notice" ${storageProblem?'':'hidden'}>${e(storageProblem)} <button class="text-button" data-action="settings">备份与恢复</button></div>${content}</main></div></div>`;
 }
 const selectControl = (id, key, options, current) => `<div class="select"><select id="${id}" ${key?`data-pref="${key}"`:''}>${options.map(([value,text])=>`<option value="${e(value)}" ${String(value)===String(current)?'selected':''}>${e(text)}</option>`).join('')}</select></div>`;
 const rateControl = (id, rate) => `<div class="range-row"><input id="${id}" type="range" min="0.5" max="1.5" step="0.05" value="${rate}" data-pref="rate" style="--fill:${Math.round((rate-.5)*100)}%"><output id="${id}-output" for="${id}">${rate.toFixed(2)}×</output></div>`;
@@ -204,8 +209,8 @@ function recordsView() {
   return `${listeningUI.historySummary()}<section class="goal-hero">${ring(goal,`${goal}%`)}<div class="goal-hero-text"><span class="eyebrow">今日目标 ${stats.goal} 个单词</span><h2>${stats.todayWords>=stats.goal?'今天的目标完成了':`还差 ${Math.max(0,stats.goal-stats.todayWords)} 个单词`}</h2><p>${icon('flame')}连续练习 ${stats.streak} 天 · 英日分别统计</p></div><button class="button outline small" data-action="learning-plan">调整目标</button></section><div class="record-stats">${tile('blue','clock','今日练习',stats.today,'次作答 / 跟读')}${tile('teal','target','独立答对率',stats.accuracy===null?'—':stats.accuracy+'%',`${stats.independent} / ${stats.graded} 次计分作答`)}${tile('amber','bulb','提示后正确',stats.assisted,'练习时使用了提示')}${tile('violet','book','练过的内容',stats.practiced,`条${languages[state.language].name}内容`)}</div><section class="panel record-chart"><div class="panel-title"><h2>近七天的练习</h2><span class="tag">${languages[state.language].name}</span></div>${weekChart(true)}</section><section class="panel"><div class="panel-title"><h2>最近记录</h2><button class="button outline small" data-action="export">${icon('download')}导出备份</button></div><div class="history-filters">${selectControl('record-filter','',[['all','全部训练方式'],...Object.entries(modes).map(([key,mode])=>[key,mode.name])],recordFilter)}</div>${history.length?history.map(item=>`<div class="history-row"><span class="history-dot ${item.correct===false?'bad':item.correct?'good':''}"></span><div class="history-main"><strong lang="${item.language}">${e(item.text)}</strong><small>${e(item.meaning)}</small><small>${modes[item.mode].name}${formName(item.mode,item.form,item.language)?' · '+formName(item.mode,item.form,item.language):''}${item.correct===false&&item.answer?' · 你的答案：'+e(item.answer):''}</small></div><div class="history-right"><span class="tag ${item.correct===false?'orange':item.correct?'green':''}">${item.correct===null?'已跟读':item.correct?item.assisted?'提示后正确':'独立正确':item.skipped?'查看了答案':'待复习'}</span><small>${formatTime(item.at)}</small></div></div>`).join(''):`<div class="empty">${icon('chart')}<h2>还没有这类练习记录</h2><p>完成一次作答后，这里会显示真实练习结果。</p></div>`}<p class="footer-note">列表展示最近 30 条；统计来自本机保留的最近 5000 条记录，跟读不计入答对率。</p></section>`;
 }
 function render() {
-  const subtitles = {train:'把听到的声音，变成记得住的词。',listening:'听懂对话和短文，抓住真正有用的信息。',library:'从内置内容开始，也可以加入自己的学习材料。',review:'用原来的题目要求，再给自己一次机会。',records:'看看练过什么，以及哪些内容还需要巩固。'};
-  root.innerHTML = shell(view==='listening'?listeningUI.render():view==='train'?practiceView():view==='library'?libraryView():view==='review'?reviewView():recordsView(),subtitles[view]);
+  const subtitles = {ai:'用自己的语音 AI 陪练，也让新鲜资料成为学习材料。',train:'把听到的声音，变成记得住的词。',listening:'听懂对话和短文，抓住真正有用的信息。',library:'从内置内容开始，也可以加入自己的学习材料。',review:'用原来的题目要求，再给自己一次机会。',records:'看看练过什么，以及哪些内容还需要巩固。'};
+  root.innerHTML = shell(view==='ai'?aiUI.render():view==='listening'?listeningUI.render():view==='train'?practiceView():view==='library'?libraryView():view==='review'?reviewView():recordsView(),subtitles[view]);
   if(renderedView!==view)root.querySelector('.content').classList.add('view-enter');
   renderedView=view;
   updateVoiceNotice();
@@ -275,7 +280,7 @@ function requestBatchSubmit(){
 }
 const voiceOptions = () => `<option value="">自动选择${voiceLabel()}音色</option>${availableVoices().map(voice=>`<option value="${e(voice.voiceURI)}" ${voice.voiceURI===pref().voice?'selected':''}>${e(voice.name)} · ${e(voice.lang)}${voice.localService?' · 本机':' · 在线'}</option>`).join('')}`;
 function updateVoiceNotice() {
-  document.querySelectorAll('[data-voice-notice]').forEach(el=>{ const list = availableVoices(); el.classList.toggle('missing',!list.length&&!speech.loadingNative); el.textContent = list.length?`${voiceLabel()}音色已就绪 · 可在“声音与备份”里更换。`:speech.loadingNative?'正在检测本机音色…':`暂未发现${voiceLabel()}音色。${host?.kind==='android'?'可在“声音与备份”打开系统语音设置安装语音数据；':'可换有对应音色的浏览器，或安装设备语音后重新检测；'}现在可以先练看义默写和阅读。`; });
+  document.querySelectorAll('[data-voice-notice]').forEach(el=>{ if(ai.readAloud){el.classList.toggle('missing',!ai.verified);el.textContent=ai.verified?'AI 朗读已启用 · 内容会发送给已配置的语音服务。':'AI 朗读尚未连接，请到“AI 语音”测试，或取消 AI 朗读以使用设备语音。';return;} const list = availableVoices(); el.classList.toggle('missing',!list.length&&!speech.loadingNative); el.textContent = list.length?`${voiceLabel()}音色已就绪 · 可在“声音与备份”里更换。`:speech.loadingNative?'正在检测本机音色…':`暂未发现${voiceLabel()}音色。${host?.kind==='android'?'可在“声音与备份”打开系统语音设置安装语音数据；':'可换有对应音色的浏览器，或安装设备语音后重新检测；'}现在可以先练看义默写和阅读。`; });
   const select=dialog.querySelector('#voice');
   if(select)select.innerHTML=voiceOptions();
   const label=dialog.querySelector('label[for="voice"]');if(label)label.textContent=voiceLabel()+'音色';
@@ -283,7 +288,7 @@ function updateVoiceNotice() {
   document.querySelectorAll('[data-action="accent"]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.accent===state.prefs.en.accent)));
 }
 function start(settings = { ...pref(), language: state.language }, ids = null) {
-  const begin = () => { try { speech.stop(); recorder.reset(); state.sessions[state.language] = createSession(settings,allEntries(state),Date.now(),ids); showSetup=false; view='train'; persist(); render(); window.scrollTo({top:0}); focusAnswer(); } catch(error) {notify(error.message);} };
+  const begin = () => { try { aiUI.leave();speech.stop(); recorder.reset(); state.sessions[state.language] = createSession(settings,allEntries(state),Date.now(),ids); showSetup=false; view='train'; persist(); render(); window.scrollTo({top:0}); focusAnswer(); } catch(error) {notify(error.message);} };
   const current = activeSession();
   if (current&&current.index<current.ids.length) confirmDialog('重新开始一组？','当前这组的题目进度将被替换，已经完成的答题记录会保留。',begin,'开始新一组'); else begin();
 }
@@ -297,8 +302,8 @@ function confirmDialog(title,message,callback,label='确认') { confirmCallback=
 function fullOpeningEnabled() { try { return localStorage.getItem('tingdu:opening')==='full'; } catch { return false; } }
 function settingsDialog() {
   const p=pref(), lang=languages[state.language].name; let hasPrevious=false;try{hasPrevious=Boolean(localStorage.getItem('tingdu:previous'));}catch{}
-  const where = host?.kind==='desktop' ? '保存位置：本机学习文件，同时保留桌面窗口缓存。第一版浏览器记录可通过备份导入；录音不写入备份。' : host?.kind==='android' ? '保存位置：手机应用内的学习文件，同时保留应用缓存。卸载应用会删除学习记录，请定期导出备份；录音不写入备份。' : '保存位置：当前浏览器。备份包含英日进度、自建词本、听力成绩和未完成的练习；录音只在本题内使用，不写入备份。';
-  openDialog(`${dialogHeading('声音与备份')}<div class="dialog-body"><section class="settings-section first"><h3>${icon('volume')}声音</h3>${accentControls()}<div class="field"><label for="voice">${voiceLabel()}音色</label><div class="select"><select id="voice" data-pref="voice">${voiceOptions()}</select></div><small>音色由设备提供；在线音色可能需要网络。首次加载时音色列表可能需要稍等。</small></div><div class="inline-actions"><button class="button secondary small" data-action="test-voice">${icon('play')}试听${voiceLabel()}</button><button class="button ghost small" data-action="refresh-voices">${icon('repeat')}重新检测音色</button>${host?.openSpeechSettings?`<button class="button ghost small" data-action="speech-settings">${icon('settings')}系统语音设置</button>`:''}</div><div class="voice-notice" data-voice-notice></div><div class="field"><label for="settings-rate">朗读速度</label>${rateControl('settings-rate',p.rate)}</div></section><section class="settings-section"><h3>${icon('palette')}目标与外观</h3><div class="form-grid">${goalControls()}<div class="field full"><label class="switch"><input id="opening-animation" type="checkbox" role="switch" ${fullOpeningEnabled()?'checked':''}><span class="switch-track" aria-hidden="true"></span><span>完整开场动画</span></label><small>默认关闭，启动后直接进入页面。开启后播放约 2 秒，可点击或按键跳过。</small></div><div class="field full"><span class="field-label" id="theme-label">白天与夜间</span><div class="theme-options" role="group" aria-labelledby="theme-label">${Object.entries(themes).map(([key,[name,symbol,note]])=>`<button type="button" class="theme-option${key===currentTheme()?' selected':''}" data-action="theme" data-value="${key}" data-theme-preview="${key}" aria-pressed="${key===currentTheme()}"><span class="theme-preview">${icon(symbol)}</span><strong>${name}</strong><small>${note}</small></button>`).join('')}</div><small>夜间模式换上星空背景和柔和的光，适合晚上练习；也可以点顶部的月亮按钮随时切换。</small></div><div class="field full"><span class="field-label" id="style-label">界面风格</span><div class="style-swatches" role="group" aria-labelledby="style-label">${Object.entries(styles).map(([key,name])=>`<button type="button" class="style-swatch${key===currentStyle()?' selected':''}" data-action="style" data-value="${key}" aria-pressed="${key===currentStyle()}"><span class="swatch-dot ${key}"></span>${name}</button>`).join('')}</div><small>四种配色心情，浅色与深色模式都可以使用。</small></div></div></section><section class="settings-section"><h3>${icon('download')}学习记录与词本</h3><p>${where}</p><div class="backup-actions"><button class="button outline small" data-action="export">${icon('download')}导出学习备份</button><button class="button secondary small" data-action="restore-pick">${icon('upload')}从备份恢复</button>${hasPrevious?'<button class="text-button" data-action="undo-restore">撤销上次恢复</button>':''}${corruptRaw!==null?'<button class="text-button" data-action="export-raw">导出保留的原记录</button>':''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p>恢复前会检查备份，并保留恢复前记录。更换浏览器或设备时，需要导入备份。</p><p>最近 5000 条单词/短句作答、100 组听力成绩用于记录与统计，未交卷听力草稿也随备份保存；单词复习状态持续保留。</p>${desktopInfo?`<p class="data-path">${e(host.name)} ${e(desktopInfo.version)} · 数据目录：${e(desktopInfo.dataDirectory)}</p>`:''}</section><div id="settings-error" class="dialog-error" role="alert" hidden></div></div>`);
+  const where = host?.kind==='desktop' ? '保存位置：本机学习文件，同时保留桌面窗口缓存。第一版浏览器记录可通过备份导入；录音不写入备份。' : host?.kind==='android' ? '保存位置：手机应用内的学习文件，同时保留应用缓存。卸载应用会删除学习记录，请定期导出备份；录音不写入备份。' : '保存位置：当前浏览器。备份包含英日进度、自建词本、听力成绩、自建听力和未完成的练习；录音只在当前练习内使用，不写入备份。';
+  openDialog(`${dialogHeading('声音与备份')}<div class="dialog-body"><section class="settings-section first"><h3>${icon('volume')}声音</h3>${accentControls()}<div class="field"><label for="voice">${voiceLabel()}音色</label><div class="select"><select id="voice" data-pref="voice">${voiceOptions()}</select></div><small>音色由设备提供；在线音色可能需要网络。首次加载时音色列表可能需要稍等。</small></div><div class="inline-actions"><button class="button secondary small" data-action="test-voice">${icon('play')}试听${voiceLabel()}</button><button class="button ghost small" data-action="refresh-voices">${icon('repeat')}重新检测音色</button>${host?.openSpeechSettings?`<button class="button ghost small" data-action="speech-settings">${icon('settings')}系统语音设置</button>`:''}</div><div class="voice-notice" data-voice-notice></div><div class="field"><label for="settings-rate">朗读速度</label>${rateControl('settings-rate',p.rate)}</div></section><section class="settings-section"><h3>${icon('sparkle')}AI 语音与联网</h3><p>自行接入支持语音的 API，体验英日陪练、AI 朗读和联网资料听力。密钥单独管理，不写入学习备份。</p><button class="button secondary small" data-action="open-ai">设置 AI 语音与联网${icon('arrow')}</button></section><section class="settings-section"><h3>${icon('palette')}目标与外观</h3><div class="form-grid">${goalControls()}<div class="field full"><label class="switch"><input id="opening-animation" type="checkbox" role="switch" ${fullOpeningEnabled()?'checked':''}><span class="switch-track" aria-hidden="true"></span><span>完整开场动画</span></label><small>默认关闭，启动后直接进入页面。开启后播放约 2 秒，可点击或按键跳过。</small></div><div class="field full"><span class="field-label" id="theme-label">白天与夜间</span><div class="theme-options" role="group" aria-labelledby="theme-label">${Object.entries(themes).map(([key,[name,symbol,note]])=>`<button type="button" class="theme-option${key===currentTheme()?' selected':''}" data-action="theme" data-value="${key}" data-theme-preview="${key}" aria-pressed="${key===currentTheme()}"><span class="theme-preview">${icon(symbol)}</span><strong>${name}</strong><small>${note}</small></button>`).join('')}</div><small>夜间模式换上星空背景和柔和的光，适合晚上练习；也可以点顶部的月亮按钮随时切换。</small></div><div class="field full"><span class="field-label" id="style-label">界面风格</span><div class="style-swatches" role="group" aria-labelledby="style-label">${Object.entries(styles).map(([key,name])=>`<button type="button" class="style-swatch${key===currentStyle()?' selected':''}" data-action="style" data-value="${key}" aria-pressed="${key===currentStyle()}"><span class="swatch-dot ${key}"></span>${name}</button>`).join('')}</div><small>四种配色心情，浅色与深色模式都可以使用。</small></div></div></section><section class="settings-section"><h3>${icon('download')}学习记录与词本</h3><p>${where}</p><div class="backup-actions"><button class="button outline small" data-action="export">${icon('download')}导出学习备份</button><button class="button secondary small" data-action="restore-pick">${icon('upload')}从备份恢复</button>${hasPrevious?'<button class="text-button" data-action="undo-restore">撤销上次恢复</button>':''}${corruptRaw!==null?'<button class="text-button" data-action="export-raw">导出保留的原记录</button>':''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p>恢复前会检查备份，并保留恢复前记录。更换浏览器或设备时，需要导入备份。</p><p>最近 5000 条单词/短句作答、100 组听力成绩、最多 30 篇自建听力随备份保存，未交卷听力草稿也随备份保存；单词复习状态持续保留。</p>${desktopInfo?`<p class="data-path">${e(host.name)} ${e(desktopInfo.version)} · 数据目录：${e(desktopInfo.dataDirectory)}</p>`:''}</section><div id="settings-error" class="dialog-error" role="alert" hidden></div></div>`);
   updateVoiceNotice();
 }
 function importDialog() {
@@ -323,7 +328,7 @@ function startReview(groupKey, id=null) {
   start({...pref(),language:state.language,book:'all',mode:group.mode,form:group.form,dictationStyle:'step',limit:100,shuffle:false},id?[id]:group.items.map(item=>item.entryId));
 }
 function applyBackup(candidate) {
-  speech.stop();recorder.reset();clearTimeout(saveTimer);
+  aiUI.leave(true);speech.stop();recorder.reset();clearTimeout(saveTimer);
   try {
     localStorage.setItem('tingdu:previous',corruptRaw!==null?corruptRaw:JSON.stringify(state));
     localStorage.setItem(STORAGE_KEY,JSON.stringify(candidate));
@@ -335,7 +340,7 @@ async function restoreFromFile(file) {
   try {
     if(file.size>10*1024*1024)throw new Error('备份超过 10 MB，请选择由听读导出的学习备份。');
     const candidate=validateState(JSON.parse(await file.text()));
-    confirmDialog('恢复这份学习备份？',`备份含 ${candidate.history.length} 条单词/短句作答、${candidate.listening.history.length} 组听力成绩、${candidate.customBooks.length} 个自建词本，将替换当前进度。恢复前记录会保留，可撤销本次恢复。`,()=>applyBackup(candidate),'恢复备份');
+    confirmDialog('恢复这份学习备份？',`备份含 ${candidate.history.length} 条单词/短句作答、${candidate.listening.history.length} 组听力成绩、${candidate.customBooks.length} 个自建词本、${candidate.listening.customLessons.length} 篇自建听力，将替换当前进度。恢复前记录会保留，可撤销本次恢复。`,()=>applyBackup(candidate),'恢复备份');
   } catch(error) {
     const el=document.querySelector('#settings-error');if(el){el.textContent=error instanceof SyntaxError?'文件不是有效的 JSON 学习备份。':error.message;el.hidden=false;}else notify(error.message);
   }
@@ -346,13 +351,14 @@ function download(value,name,message,type='application/json') {
   const url=URL.createObjectURL(new Blob([value],{type}));const anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   if(message)notify(message);
 }
-function navigate(target){speech.stop();recorder.reset();persist();view=target;showSetup=false;render();window.scrollTo({top:0});}
+function navigate(target){aiUI.leave();speech.stop();recorder.reset();persist();view=target;showSetup=false;render();window.scrollTo({top:0});if(view==='ai')void aiUI.enter();}
 document.addEventListener('click',event=>{
   const button=event.target.closest('[data-action]');if(!button||button.disabled)return;
   const action=button.dataset.action;
-  if(listeningUI.action(button))return;
+  if(aiUI.action(button)||listeningUI.action(button))return;
   if(action==='nav')navigate(button.dataset.view);
-  else if(action==='language'){speech.stop();recorder.reset();persist();state.language=button.dataset.language;showSetup=false;libraryBook='all';persist();render();}
+  else if(action==='open-ai'){dialog.close();navigate('ai');}
+  else if(action==='language'){aiUI.leave(true);speech.stop();recorder.reset();persist();state.language=button.dataset.language;showSetup=false;libraryBook='all';persist();render();}
   else if(action==='mode'){pref().mode=button.dataset.mode;persist();render();document.querySelector(`[data-action="mode"][data-mode="${pref().mode}"]`)?.focus({preventScroll:true});}
   else if(action==='speak'){const entry=entryById(button.dataset.id);if(entry){const s=activeSession();speech.speak(entry,s&&!showSetup&&view==='train'?s.settings:{...pref(),language:state.language},button.dataset.slow==='true');}}
   else if(action==='audio-stop'){speech.stop();const status=document.querySelector('#batch-status');if(status)status.textContent='播放已停止，可以继续填写或重新播放。';}
@@ -416,7 +422,7 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('change',event=>{
   const el=event.target;
-  if(listeningUI.change(el))return;
+  if(aiUI.change(el)||listeningUI.change(el))return;
   if(el.id==='restore-file'){restoreFromFile(el.files[0]);el.value='';return;}
   if(el.id==='record-filter'){recordFilter=el.value;render();return;}
   if(el.id==='opening-animation'){try{localStorage.setItem('tingdu:opening',el.checked?'full':'fast');notify(el.checked?'下次启动将播放完整开场动画。':'下次启动将直接进入页面。');}catch{notify('启动偏好未能保存，请检查本机存储。');}return;}
@@ -432,6 +438,7 @@ document.addEventListener('change',event=>{
 });
 document.addEventListener('input',event=>{
   const el=event.target;
+  if(aiUI.input(el))return;
   if(el.id==='plan-goal-en'||el.id==='plan-goal-ja')el.closest('.plan-goal').querySelectorAll('[data-goal]').forEach(item=>item.setAttribute('aria-pressed',String(Number(item.dataset.goal)===Number(el.value))));
   if(el.dataset.batchAnswer&&isBatch(activeSession())){
     const s=activeSession();s.batchDrafts[el.dataset.batchAnswer]=el.value;el.closest('.batch-row')?.classList.toggle('filled',Boolean(el.value.trim()));
@@ -471,6 +478,7 @@ document.addEventListener('keydown',event=>{
 });
 document.addEventListener('submit',event=>{
   const form=event.target;
+  if(form.id.startsWith('ai-')){event.preventDefault();aiUI.submit(form);return;}
   if(form.id==='setup-form'){event.preventDefault();start();}
   else if(form.id==='learning-plan-form'){
     event.preventDefault();
@@ -490,8 +498,8 @@ document.addEventListener('submit',event=>{
     catch(error){const el=document.querySelector('#edit-book-error');el.textContent=error.message;el.hidden=false;}
   }
 });
-window.addEventListener('pagehide',()=>{if(!desktopClosing)persist();speech.stop();recorder.reset();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!desktopClosing)persist();speech.stop();if(recorder.status==='recording')recorder.stop();}});
+window.addEventListener('pagehide',()=>{aiUI.leave(true);if(!desktopClosing)persist();speech.stop();recorder.reset();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){aiUI.stopRecording();if(!desktopClosing)persist();speech.stop();if(recorder.status==='recording')recorder.stop();}});
 window.addEventListener('tingdu:native',event=>{const detail=event.detail||{};if(detail.type==='file')notify(detail.ok?'已保存到你选择的位置。':detail.cancelled?'已取消导出。':'没有保存成功，请换个位置重试。');});
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',syncSystemBars);
 // The Android back key closes dialogs, then returns to practice, before leaving the app.
@@ -532,7 +540,7 @@ const pageRevealed=revealApp();
 pageRevealed.then(()=>{if(!state.onboardingComplete&&corruptRaw===null&&!dialog.open)learningPlanDialog();});
 if(host){
   host.onSettings(settingsDialog);
-  host.onCloseRequested(async()=>{desktopClosing=true;persist();await desktopSave;});
+  host.onCloseRequested(async()=>{desktopClosing=true;aiUI.leave(true);persist();await desktopSave;});
   persist();
   // The usable page does not wait for the separate system-voice scan.
   pageRevealed.then(()=>requestAnimationFrame(()=>host.ready({pageReadyMs:Math.round(performance.now()),title:document.title,heading:root.querySelector('h1')?.textContent,language:state.language,stateVersion:state.version,entries:allEntries(state).length,history:state.history.length,customBooks:state.customBooks.length,goals:{en:state.prefs.en.goal,ja:state.prefs.ja.goal},nativeVoiceCount:speech.native.length,englishVoiceCount:speech.forLanguage('en').length,japaneseVoiceCount:speech.forLanguage('ja').length})));
@@ -549,7 +557,7 @@ registerLearningTools({
     if(current&&current.index<current.ids.length)return {status:'unfinished_session',message:'请先继续当前练习，或在界面上确认重新开始。'};
     const settings={...state.prefs[language],language,mode:input.mode,book:input.book||state.prefs[language].book,form:input.form||state.prefs[language].form,limit:input.limit||state.prefs[language].limit};
     if(settings.book!=='all'&&!allBooks(state).some(book=>book.id===settings.book&&book.language===language))throw new Error('词本不存在或语言不匹配。');
-    speech.stop();recorder.reset();state.language=language;state.prefs[language]={...settings};delete state.prefs[language].language;
+    aiUI.leave(true);speech.stop();recorder.reset();state.language=language;state.prefs[language]={...settings};delete state.prefs[language].language;
     state.sessions[language]=createSession(settings,allEntries(state));view='train';showSetup=false;persist();render();focusAnswer();
     return {status:'started',language,mode:settings.mode,count:activeSession().ids.length};
   }

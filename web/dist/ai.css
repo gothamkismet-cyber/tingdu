@@ -1,0 +1,69 @@
+.ai-page{display:grid;gap:22px}
+.ai-intro{padding:8px 2px 4px}
+.ai-intro h2{font-size:30px;margin:14px 0 8px;letter-spacing:-.7px}
+.ai-intro>p{color:var(--muted);margin:0 0 18px}
+.ai-intro>small{display:block;color:var(--muted);line-height:1.8}
+.ai-check{display:flex;align-items:center;gap:9px;margin:14px 0;font-size:14px;cursor:pointer}
+.ai-check input{accent-color:var(--primary);width:18px;height:18px;flex-shrink:0}
+.ai-connection{padding:0;overflow:hidden}
+.ai-connection>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:22px;cursor:pointer;list-style:none}
+.ai-connection>summary>span:first-child{display:flex;align-items:center;gap:10px;font-weight:700}
+.ai-connection>summary svg{width:20px;height:20px}
+.ai-connection-body{padding:0 24px 24px}
+.ai-connection .form-grid{margin-top:20px}
+.ai-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.ai-grid>.panel{margin:0;min-width:0}
+.ai-grid h2{font-size:20px;line-height:1.5}
+.ai-grid .eyebrow{font-size:10px;letter-spacing:1.4px}
+.ai-grid textarea{min-height:96px;width:100%;resize:vertical;margin:12px 0}
+.ai-page .inline-actions{flex-wrap:wrap}
+.ai-page p{overflow-wrap:anywhere;line-height:1.8}
+.ai-page audio{display:block;width:100%;max-width:100%;height:40px;margin:12px 0}
+.ai-operation-status:empty{display:none}
+.ai-operation-status{display:flex;justify-content:space-between;gap:16px;padding:12px 18px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.ai-messages{display:grid;gap:12px;max-height:440px;overflow:auto;overscroll-behavior:contain;padding:4px 1px}
+.ai-message{padding:15px 17px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.ai-message.user{margin-left:20px;background:var(--primary-soft)}
+.ai-message.assistant{margin-right:12px}
+.ai-message p{margin:6px 0;white-space:pre-wrap;font-size:14px}
+.ai-chat-empty{text-align:center;padding:24px 12px;color:var(--muted)}
+.ai-chat-empty svg{width:32px;height:32px;display:block;margin:0 auto 12px;color:var(--primary)}
+.ai-chat-empty strong{display:block;color:var(--ink)}
+.ai-chat-empty p{font-size:13px}
+.ai-privacy{font-size:12px;color:var(--muted);margin:18px 0 0}
+.ai-record-preview,.ai-test-audio{padding:16px;margin-top:18px;border:1px solid var(--line);border-radius:14px;font-size:13px}
+.ai-source-note{padding:16px;border-radius:14px;border:1px solid var(--line);margin:18px 0;background:var(--surface);font-size:13px;overflow-wrap:anywhere}
+.ai-source-note p{max-height:230px;overflow:auto;line-height:1.8}
+.ai-source-note .text-button{display:block;margin-top:12px}
+.ai-source-note a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+.ai-topic-examples{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
+.ai-topic-examples button{cursor:pointer}
+.ai-level{display:flex;align-items:center;gap:8px;font-size:13px}
+.ai-level select{padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)}
+.ai-search-results{list-style:none;padding:0;margin:18px 0;display:grid;gap:8px}
+.ai-search-results button{position:relative;display:block;text-align:left;width:100%;padding:14px 36px 14px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);cursor:pointer}
+.ai-search-results small{display:block;color:var(--muted);line-height:1.6;margin-top:6px}
+.ai-search-results svg{position:absolute;width:16px;height:16px;right:12px;top:18px}
+.ai-generate{margin-top:22px}
+.ai-lesson-preview{border-top:1px solid var(--line);margin-top:22px;padding-top:22px}
+.ai-lesson-preview h3{margin:12px 0 6px}
+.ai-lesson-preview details{font-size:13px;margin-bottom:18px}
+.ai-lesson-preview summary{cursor:pointer;padding:10px 0}
+.listening-create{margin:20px 0}
+.ai-page button:disabled{opacity:.5;cursor:not-allowed}
+.ai-error{margin:0}
+
+@media(max-width:1100px){.ai-grid{grid-template-columns:1fr}
+.ai-intro h2{font-size:27px}
+}
+@media(max-width:600px){.ai-connection>summary{padding:18px;align-items:flex-start;flex-wrap:wrap}
+.ai-connection-body{padding:0 18px 18px}
+.ai-page{gap:16px}
+.ai-intro h2{font-size:25px}
+.ai-message.user{margin-left:10px}
+.ai-grid{gap:16px}
+.nav button{padding-inline:5px}
+.nav button span{font-size:10px}
+.ai-page .inline-actions .button{font-size:12px;padding:10px 12px}
+.ai-level{margin-top:6px}
+}

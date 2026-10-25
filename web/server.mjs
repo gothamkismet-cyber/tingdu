@@ -4,19 +4,34 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { nativeVoices, nativeSpeak } from './native-speech.mjs';
+import { requestOnline } from './online.mjs';
 
 const root = fileURLToPath(new URL('./dist/', import.meta.url));
-const port = 4173;
+const port = Number(process.argv.find(arg=>arg.startsWith('--port='))?.slice(7) || 4173);
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Port must be an integer from 1024 to 65535.');
 const origin = `http://127.0.0.1:${port}`;
+const allowedOrigins = [origin, `http://localhost:${port}`];
 const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
 function openBrowser() {
   if (process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', `Start-Process '${origin}'`], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
 }
 const server = http.createServer(async (req, res) => {
-  if (!['127.0.0.1:4173', 'localhost:4173'].includes(req.headers.host)) {res.writeHead(403);return res.end();}
+  if (![`127.0.0.1:${port}`, `localhost:${port}`].includes(req.headers.host)) {res.writeHead(403);return res.end();}
   const requestUrl = new URL(req.url, origin);
   if (requestUrl.pathname.startsWith('/api/')) {
-    if (req.headers.origin && ![origin,'http://localhost:4173'].includes(req.headers.origin)) {res.writeHead(403);return res.end();}
+    if (req.headers.origin && !allowedOrigins.includes(req.headers.origin)) {res.writeHead(403);return res.end();}
+    if (requestUrl.pathname === '/api/online' && req.method === 'POST') {
+      if (!allowedOrigins.includes(req.headers.origin) || req.headers['content-type']?.split(';')[0] !== 'application/json') {res.writeHead(403);return res.end();}
+      const controller=new AbortController();res.on('close',()=>{if(!res.writableEnded)controller.abort();});
+      let result;
+      try {
+        const parts=[];let bytes=0;
+        for await(const part of req){bytes+=part.length;if(bytes>4*1024*1024)throw new Error('请求过大，请缩短录音或对话。');parts.push(part);}
+        let input;try{input=JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw new Error('联网请求格式无效。');}
+        result=await requestOnline(input,{signal:controller.signal});
+      } catch(error) {result={error:error.message};}
+      if(!res.destroyed){res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(result));}return;
+    }
     try {
       if (requestUrl.pathname === '/api/voices' && req.method === 'GET') {
         res.writeHead(200, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});return res.end(JSON.stringify(await nativeVoices(requestUrl.searchParams.get('refresh')==='1')));
